@@ -1,0 +1,6 @@
+user: kpumft
+password: 22121998
+host: localhost
+port: 5432
+db: coba
+sslmode: disable

@@ -1,0 +1,58 @@
+csv: data/PEMILIHAN UMUM MAHASISWA ELECTRONIC VOTE FAKULTAS TEKNIK UNIVERSITAS TRUNOJOYO MADURA .csv
+separator: ","
+computePackage: evote/helper
+dependsOn:
+  - ref_dapil
+  - ref_calon_gubernur
+  - ref_calon_dpm
+  #- ref_calon_himatif
+  - ref_calon_himatro
+  - ref_calon_hmti
+constraints:
+  - PRIMARY KEY (nim_email_hashed, waktu_str)
+  - FOREIGN KEY (dapil) REFERENCES evote.ref_dapil (dapil)
+  - FOREIGN KEY (pilihan_gubernur) REFERENCES evote.ref_calon_gubernur (calon)
+  - FOREIGN KEY (pilihan_dpm) REFERENCES evote.ref_calon_dpm (calon)
+  #- FOREIGN KEY (pilihan_himatif) REFERENCES evote.ref_calon_himatif (calon)
+  - FOREIGN KEY (pilihan_himatro) REFERENCES evote.ref_calon_himatro (calon)
+  - FOREIGN KEY (pilihan_hmti) REFERENCES evote.ref_calon_hmti (calon)
+fields:
+  - name: waktu_str
+    column: Timestamp
+    type: text
+    required: true
+  - name: nim_email_hashed
+    column: Username
+    type: varchar(32)
+    computeFn: SaltedHash
+    required: true
+  - name: jenis_email
+    column: Username
+    type: varchar(13)
+    computeFn: JenisEmail
+    required: true
+  - name: persetujuan
+    column: "SAYA MENGGUNAKAN HAK PILIH DALAM PEMILU E-VOTE SECARA SADAR DAN TANPA TEKANAN DARI SIAPAPUN:"
+    type: varchar(6)
+    required: true
+  - name: dapil
+    column: "PROGRAM STUDI :"
+    type: text
+    required: true
+  - name: pilihan_gubernur
+    column: Silahkan pilih calon Gubernur dan Wakil Gubernur FT UTM
+    type: text
+    required: true
+  - name: pilihan_dpm
+    column: Silahkan pilih calon Anggota DPM FT UTM
+    type: text
+    required: true
+  #- name: pilihan_himatif
+    #column: "Silahkan pilih calon KETUA UMUM dan WAKIL KETUA UMUM HIMATIF FT UTM "
+    #type: text
+  - name: pilihan_himatro
+    column: "Silahkan pilih calon KETUA UMUM dan WAKIL KETUA UMUM HIMATRO FT UTM "
+    type: text
+  - name: pilihan_hmti
+    column: Silahkan pilih calon KETUA UMUM dan WAKIL KETUA UMUM HMTI FT UTM
+    type: text

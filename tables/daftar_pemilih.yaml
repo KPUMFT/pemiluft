@@ -1,0 +1,18 @@
+csv: data/daftar-pemilih.csv
+separator: ","
+computePackage: evote/helper
+dependsOn:
+  - ref_dapil
+constraints:
+  - PRIMARY KEY (nim_email_hashed)
+  - FOREIGN KEY (dapil) REFERENCES evote.ref_dapil (dapil)
+fields:
+  - name: nim_email_hashed
+    column: NIM
+    type: varchar(32)
+    computeFn: NimToEmailSaltedHash
+    required: true
+  - name: dapil
+    column: PRODI
+    type: text
+    required: true

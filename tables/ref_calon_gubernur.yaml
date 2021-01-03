@@ -1,0 +1,9 @@
+csv: data/ref-calon-gubernur.csv
+separator: ","
+computePackage: evote/helper
+constraints:
+  - PRIMARY KEY (calon)
+fields:
+  - name: calon
+    type: text
+    required: true

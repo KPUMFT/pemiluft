@@ -1,0 +1,6 @@
+user: yourdbuser
+password: yourpassword
+host: localhost
+port: 5432
+db: thedatabase
+sslmode: disable

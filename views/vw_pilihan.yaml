@@ -1,0 +1,109 @@
+dependsOn:
+  - daftar_pilihan
+  - daftar_pemilih
+export: out/vw_pilihan.csv
+sql: |
+  WITH convert_to_timestamp AS (
+    SELECT
+      nim_email_hashed,
+      -- Konversi tipe data waktu dari string ke timestamp
+      TO_TIMESTAMP(waktu_str, 'YYYY/MM/DD HH:MI:SS AM') AS waktu,
+      jenis_email,
+      dapil,
+      pilihan_gubernur,
+      pilihan_dpm,
+      --pilihan_himatif,
+      pilihan_himatro,
+      pilihan_hmti
+    FROM evote.daftar_pilihan
+  ),
+
+  latest_data AS (
+    SELECT
+      nim_email_hashed,
+      MAX(waktu) AS waktu
+    FROM convert_to_timestamp
+    GROUP BY nim_email_hashed
+  ),
+
+  validasi AS (
+    SELECT
+      A.waktu,
+
+      -- dalam_waktu_pemungutan akan bernilai TRUE apabila waktu pengisian form
+      -- oleh pemilih berada dalam batas waktu yang ditentukan
+      A.waktu BETWEEN
+        TO_TIMESTAMP('2021/01/04 8:00:00 AM', 'YYYY/MM/DD HH:MI:SS AM') AND
+        TO_TIMESTAMP('2021/01/04 1:00:00 PM', 'YYYY/MM/DD HH:MI:SS AM')
+      AS dalam_waktu_pemungutan,
+
+      A.nim_email_hashed,
+      B.jenis_email,
+      B.dapil AS input_dapil,
+      C.dapil AS dapil_tercatat,
+
+      -- terdaftar akan bernilai TRUE apabila email/NIM yang bersangkutan
+      -- terdaftar dalam daftar pemilih dan email yang digunakan memiliki domain
+      -- student.trunojoyo.ac.id
+      (C.nim_email_hashed IS NOT NULL AND B.jenis_email = 'student') AS terdaftar,
+
+      -- dapil_benar akan bernilai TRUE apabila data dapil yang diinputkan
+      -- pemilih pada Google Forms sesuai dengan yang ada pada data
+      -- daftar pemilih.
+      B.dapil = C.dapil AS dapil_benar,
+      
+      -- dapil_sesuai akan bernilai TRUE apabila pemilih memberikan pilihannya
+      -- pada dapil yang sesuai dengan fakultas pemilih yang tercatat di daftar
+      -- pemilih.
+      --
+      -- Kasus berikut ini KEMUNGKINAN KECIL terjadi karena sudah dibatasi pada
+      -- Google Forms.
+      -- Apabila ternyata pemilih selain memilih pada dapil fakultas juga
+      -- memilih pada dapil lainnya, maka pilihan pada dapil lainnya tersebut
+      -- akan diabaikan.
+      CASE
+        --WHEN C.dapil = 'TEKNIK INFORMATIKA' THEN B.pilihan_himatif IS NOT NULL
+        WHEN C.dapil = 'TEKNIK ELEKTRO' THEN B.pilihan_himatro IS NOT NULL
+        WHEN C.dapil = 'TEKNIK INDUSTRI' THEN B.pilihan_hmti IS NOT NULL
+      END AS dapil_sesuai,
+      
+      B.pilihan_gubernur,
+      B.pilihan_dpm,
+      --B.pilihan_himatif,
+      B.pilihan_himatro,
+      B.pilihan_hmti
+    FROM latest_data A
+    LEFT JOIN convert_to_timestamp B ON (A.nim_email_hashed = B.nim_email_hashed AND A.waktu = B.waktu)
+    LEFT JOIN evote.daftar_pemilih C ON (A.nim_email_hashed = C.nim_email_hashed)
+  )
+
+  -- Implementasi penentuan suara sah dan tidak sah (beserta alasan tidak
+  -- sahnya)
+  SELECT
+    CASE
+        WHEN A.terdaftar = FALSE THEN FALSE
+        WHEN A.dalam_waktu_pemungutan = FALSE THEN FALSE
+        ELSE TRUE
+    END AS suara_non_dapil_sah,
+
+    CASE
+        WHEN A.terdaftar = FALSE THEN '(a) Tidak terdaftar dalam daftar pemilih'
+        WHEN A.dalam_waktu_pemungutan = FALSE THEN '(b) Di luar waktu pemungutan suara'
+        ELSE NULL
+    END AS alasan_suara_non_dapil_tidak_sah,
+
+    CASE
+        WHEN A.terdaftar = FALSE THEN FALSE
+        WHEN A.dapil_sesuai = FALSE THEN FALSE
+        WHEN A.dalam_waktu_pemungutan = FALSE THEN FALSE
+        ELSE TRUE
+    END AS suara_dapil_sah,
+
+    CASE
+        WHEN A.terdaftar = FALSE THEN '(a) Tidak terdaftar dalam daftar pemilih'
+        WHEN A.dapil_sesuai = FALSE THEN '(b) Dapil tidak sesuai'
+        WHEN A.dalam_waktu_pemungutan = FALSE THEN '(c) Di luar waktu pemungutan suara'
+        ELSE NULL
+    END AS alasan_suara_dapil_tidak_sah,
+    A.*
+  FROM validasi A

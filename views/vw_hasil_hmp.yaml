@@ -1,0 +1,133 @@
+dependsOn:
+  - ref_dapil
+  #- ref_calon_himatif
+  - ref_calon_himatro
+  - ref_calon_hmti
+  - vw_pilihan
+export: out/vw_hasil_hmp.csv
+sql: |
+  WITH
+
+  -- Data helper untuk daftar calon setiap dapil (dikumpulkan dalam satu
+  -- view)
+  all_calon AS (
+    --SELECT 'TEKNIK INFORMATIKA' AS dapil, calon FROM evote.ref_calon_himatif
+    --UNION ALL
+    SELECT 'TEKNIK ELEKTRO' AS dapil, calon FROM evote.ref_calon_himatro
+    UNION ALL
+    SELECT 'TEKNIK INDUSTRI' AS dapil, calon FROM evote.ref_calon_hmti
+  ),
+
+  -- Menggabungkan kolom-kolom pilihan tiap dapil menjadi satu, dengan cara menampilkan
+  -- hanya kolom pilihan dapil yang bersesuaian dengan dapil pemilih.
+  dapil_normalized AS (
+    SELECT
+      A.nim_email_hashed,
+      A.suara_dapil_sah,
+      A.alasan_suara_dapil_tidak_sah,
+      A.dapil_tercatat AS dapil,
+      CASE
+        --WHEN A.dapil_tercatat = 'TEKNIK INFORMATIKA' THEN A.pilihan_himatif
+        WHEN A.dapil_tercatat = 'TEKNIK ELEKTRO' THEN A.pilihan_himatro
+        WHEN A.dapil_tercatat = 'TEKNIK INDUSTRI' THEN A.pilihan_hmti
+        ELSE NULL
+      END AS pilihan_hmp
+    FROM evote.vw_pilihan A
+  ),
+
+  -- Penghitungan (aggregasi) suara sah untuk setiap dapil
+  suara_sah AS (
+    SELECT
+      A.dapil,
+      A.calon AS suara,
+      TRUE AS sah,
+      (
+        SELECT
+          COUNT(*)
+        FROM dapil_normalized B
+        WHERE
+          B.dapil = A.dapil AND
+          B.suara_dapil_sah = TRUE AND
+          B.pilihan_hmp = A.calon
+      ) AS jumlah
+    FROM all_calon A
+    ORDER BY A.dapil, A.calon
+  ),
+
+  -- Data helper untuk alasan tidak sah
+  alasan AS (
+    SELECT UNNEST(ARRAY[
+      -- Tidak ikut ditampilkan di sini, karena bila tidak ada dalam daftar
+      -- pemilih maka tidak dapat diverifikasi pemilih tersebut berasal dari
+      -- dapil mana
+      -- '(a) Tidak terdaftar dalam daftar pemilih',
+      '(b) Dapil tidak sesuai',
+      '(c) Di luar waktu pemungutan suara'
+    ]) AS alasan
+  ),
+
+  -- Data helper untuk data dapil
+  fak AS (
+    SELECT UNNEST(ARRAY[
+      --'TEKNIK INFORMATIKA',
+      'TEKNIK ELEKTRO',
+      'TEKNIK INDUSTRI'
+      -- 'SISTEM INFORMASI',
+      -- 'TEKNIK MESIN',
+      -- 'TEKNIK MEKATRONIKA'
+    ]) AS dapil
+  ),
+
+  -- Kombinasi data dapil dan alasan tidak sah
+  alasan_dapil AS (
+    SELECT A.dapil, B.alasan FROM fak A, alasan B
+  ),
+
+  -- Penghitungan (aggregasi) suara tidak sah untuk setiap dapil
+  suara_tidak_sah AS (
+    SELECT
+      A.dapil,
+      A.alasan AS suara,
+      FALSE AS sah,
+      (
+        SELECT
+          COUNT(*)
+        FROM dapil_normalized B
+        WHERE
+          B.dapil = A.dapil AND
+          B.suara_dapil_sah = FALSE AND
+          B.alasan_suara_dapil_tidak_sah = A.alasan
+      ) AS jumlah
+    FROM alasan_dapil A
+  ),
+
+  -- Penggabungan view suara sah dan tidak sah
+  gabungan AS (
+    SELECT * FROM suara_sah
+    UNION ALL
+    SELECT * FROM suara_tidak_sah
+  )
+
+  -- Penghitungan persentase
+  (SELECT
+    A.*,
+    CASE
+      WHEN A.sah THEN CAST((A.jumlah * 100) AS FLOAT) / NULLIF((SELECT COUNT(*) FROM evote.vw_pilihan B WHERE B.dapil_tercatat = A.dapil AND B.suara_dapil_sah), 0)
+    END AS persentase_dari_suara_sah_dalam_dapil,
+    CAST((A.jumlah * 100) AS FLOAT) / NULLIF((SELECT COUNT(*) FROM evote.vw_pilihan B WHERE B.dapil_tercatat = A.dapil), 0) AS persentase_dari_seluruh_suara_dalam_dapil
+  FROM gabungan A
+  ORDER BY A.dapil, A.sah DESC, A.suara)
+
+  UNION ALL
+
+  (SELECT
+    NULL AS dapil,
+    '(a) Tidak terdaftar dalam daftar pemilih' AS suara,
+    FALSE AS sah,
+    (
+      SELECT COUNT(*)
+      FROM dapil_normalized
+      WHERE alasan_suara_dapil_tidak_sah = '(a) Tidak terdaftar dalam daftar pemilih'
+    ) AS jumlah,
+    NULL AS persentase_dari_suara_sah_dalam_dapil,
+    NULL AS persentase_dari_seluruh_suara_dalam_dapil)

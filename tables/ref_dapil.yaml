@@ -1,0 +1,9 @@
+csv: data/ref_dapil.csv
+separator: ","
+computePackage: evote/helper
+constraints:
+  - PRIMARY KEY (dapil)
+fields:
+  - name: dapil
+    type: text
+    required: true
