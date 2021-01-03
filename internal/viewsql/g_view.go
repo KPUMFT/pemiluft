@@ -3,6 +3,7 @@ package viewsql
 // Target008Create contains SQL to create view vw_hasil_dpm
 var Target008Create = `
 CREATE VIEW "evote"."vw_hasil_dpm" AS
+
 WITH
 
 -- Penghitungan (aggregasi) suara sah
@@ -69,6 +70,7 @@ var Target008Drop = `DROP VIEW IF EXISTS "evote"."vw_hasil_dpm"`
 // Target009Create contains SQL to create view vw_hasil_gubernur
 var Target009Create = `
 CREATE VIEW "evote"."vw_hasil_gubernur" AS
+
 WITH
 
 -- Penghitungan (aggregasi) suara sah
@@ -135,6 +137,7 @@ var Target009Drop = `DROP VIEW IF EXISTS "evote"."vw_hasil_gubernur"`
 // Target010Create contains SQL to create view vw_hasil_hmp
 var Target010Create = `
 CREATE VIEW "evote"."vw_hasil_hmp" AS
+
 WITH
 
 -- Data helper untuk daftar calon setiap dapil (dikumpulkan dalam satu
@@ -267,6 +270,7 @@ var Target010Drop = `DROP VIEW IF EXISTS "evote"."vw_hasil_hmp"`
 // Target011Create contains SQL to create view vw_pilihan
 var Target011Create = `
 CREATE VIEW "evote"."vw_pilihan" AS
+
 WITH convert_to_timestamp AS (
   SELECT
     nim_email_hashed,
@@ -297,7 +301,7 @@ validasi AS (
     -- dalam_waktu_pemungutan akan bernilai TRUE apabila waktu pengisian form
     -- oleh pemilih berada dalam batas waktu yang ditentukan
     A.waktu BETWEEN
-      TO_TIMESTAMP('2021/01/03 8:00:00 AM', 'YYYY/MM/DD HH:MI:SS AM') AND
+      TO_TIMESTAMP('2021/01/04 8:00:00 AM', 'YYYY/MM/DD HH:MI:SS AM') AND
       TO_TIMESTAMP('2021/01/04 1:00:00 PM', 'YYYY/MM/DD HH:MI:SS AM')
     AS dalam_waktu_pemungutan,
 
