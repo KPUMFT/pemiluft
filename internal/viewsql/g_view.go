@@ -301,8 +301,8 @@ validasi AS (
     -- dalam_waktu_pemungutan akan bernilai TRUE apabila waktu pengisian form
     -- oleh pemilih berada dalam batas waktu yang ditentukan
     A.waktu BETWEEN
-      TO_TIMESTAMP('2021/01/04 8:00:00 AM', 'YYYY/MM/DD HH:MI:SS AM') AND
-      TO_TIMESTAMP('2021/01/04 1:00:00 PM', 'YYYY/MM/DD HH:MI:SS AM')
+      TO_TIMESTAMP('2021/01/04 8:30:00 AM', 'YYYY/MM/DD HH:MI:SS AM') AND
+      TO_TIMESTAMP('2021/01/04 1:30:00 PM', 'YYYY/MM/DD HH:MI:SS AM')
     AS dalam_waktu_pemungutan,
 
     A.nim_email_hashed,

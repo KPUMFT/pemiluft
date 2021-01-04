@@ -1,6 +1,6 @@
-user: kpum
-password: coba
+user: kpumft
+password: 22121998
 host: localhost
 port: 5432
-db: coba
+db: pemiluft
 sslmode: disable
